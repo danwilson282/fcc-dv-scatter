@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <link rel="stylesheet" href="styles.css" />
+        <title>FCC JSON Scatter Graph</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.7.0/d3.min.js"></script>
+        <script>
+
+            document.addEventListener('DOMContentLoaded', function(){
+                    fetch('https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/cyclist-data.json')
+                    .then(response => response.json())
+                    .then(data => {
+
+    // x is data.Year y is data.Time
+    //console.log(data)
+
+    const w = 800;
+    const h = 500;
+    const padding = 60;
+    
+    //define tooltip
+    const tooltip = d3.select(".tool")
+        .append('div')
+        .attr('class', 'tooltip')
+        .attr('id', 'tooltip')
+        .style('opacity', 100);
+
+
+    let minutes = data.map(d=>d.Time)
+    let dope = data.map((d)=>{
+        if (d.Doping==''){
+            return {name: d.Name, info: 'Rider clean', color: 'green'}
+        }
+        else {
+            return {name: d.Name, info: d.Doping, color: 'red'}
+        }
+    })
+    //console.log(dope)
+    let parsedTime = minutes.map(d=>{
+        return d3.timeParse('%M:%S')(d)
+    });
+    //console.log(parsedTime)
+    const xScale = d3.scaleLinear()
+                     .domain([d3.min(data, function (d) {return d.Year - 1;}), d3.max(data, function (d) {return d.Year + 1;})])
+                     .range([padding, w - padding]);
+
+    const yScale = d3.scaleTime()
+                     .domain([d3.max(parsedTime), d3.min(parsedTime)])
+                     .range([h-padding, padding]);
+    const svg = d3.select(".graph")
+                  .append("svg")
+                  .attr("width", w)
+                  .attr("height", h);
+    svg.selectAll(".dot")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr('class', 'dot')
+        .attr('r', 6)
+        .attr('cx', function (d) {
+            return xScale(d.Year);
+         })
+        .attr('cy', function (d,i) {
+          return yScale(parsedTime[i]);
+         })
+        .attr('data-xvalue', function (d) {
+            return d.Year;
+         })
+        .attr('data-yvalue', function (d,i) {
+            return parsedTime[i];
+         })
+         .style('fill', function (d,i) {
+          return dope[i].color
+         })
+      //tooltip
+      .on('mouseover', (event, d) => {
+            tooltip.transition()
+                .duration(200)
+                .style('opacity', 0.9);
+            tooltip.html(`
+            <p>`+d.Name+` (`+d.Nationality+`)</p>
+            <p>`+d.Year+` Time: `+d.Time+`</p>
+            <p>`+d.Doping+`</p>
+            `)
+                .attr('data-year', d.Year)
+                .style('transform', 'translate('+(event.pageX+10)+'px, '+(event.pageY+10)+'px)')
+                .style("left", event.pageX+20 + "px")
+                .style("top", event.pageY+20 + "px")
+                .style("background-color", "rgb(214, 204, 175)")
+                .style("border-radius", '10%')
+                .style("border", '1px solid black')
+                .style("padding", '5px')
+
+        })
+        .on('mouseout', (d, i) => {
+            tooltip.transition()
+                .duration(200)
+                .style('opacity', 0)
+        });
+    const yAxis = d3.axisLeft()
+        .scale(yScale)
+        .tickFormat(d3.timeFormat('%M:%S'));
+    svg.append("g")
+       .attr("transform", "translate(" + padding + ",0)")
+       .attr('id', 'y-axis')
+       .attr('class', 'tick')
+       .call(yAxis)
+    const xAxis = d3.axisBottom()
+        .scale(xScale)
+        .tickFormat(d3.format('d'));
+    svg
+      .append('g')
+      .call(xAxis)
+      .attr('id', 'x-axis')
+      .attr('class', 'tick')
+      .attr('transform', 'translate(0,'+(h-padding)+')');
+    svg
+      .append('text')
+      .attr('transform', 'rotate(-90)')
+      .attr('x', -10)
+      .attr('y', -10)
+      .style('font-size', 18)
+      .text('Time (mins)');
+    //legend
+    var legendContainer = svg.append('g').attr('id', 'legend');
+    let leg = []
+    leg.push({color: 'red', doping: true})
+    leg.push({color: 'green', doping: false})
+    var legend = legendContainer
+      .selectAll('#legend')
+      .data(leg)
+      .enter()
+      .append('g')
+      .attr('class', 'legend-label')
+      .attr('transform', function (d, i) {
+        return 'translate(0,' + (i * 25) + ')';
+      });
+
+    legend
+      .append('circle')
+      .attr('cx', w - 10)
+      .attr('cy', 10)
+      .attr('r', 10)
+      .style('fill', function (d, i) {
+        return d.color;
+      });
+
+    legend
+      .append('text')
+      .attr('x', w - 24)
+      .attr('y', 9)
+      .attr('dy', '.35em')
+      .style('text-anchor', 'end')
+      .text(function (d) {
+        if (d.doping) {
+          return 'Riders with doping allegations';
+        } else {
+          return 'No doping allegations';
+        }
+      });
+       //bottom of file
+                    })
+            });
+            
+        </script>
+    </head>
+    <body>
+
+        <div id="title"><h1>Doping in cycling</h1></div>
+        <div class="graph"></div>
+        <div class="tool"></div>
+        
+        <script src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js"></script>
+        <script>
+
+        </script>
+    </body>
+</html>
